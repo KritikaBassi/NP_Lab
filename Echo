@@ -1,0 +1,64 @@
+//Client Echo
+
+#include<sys/socket.h>
+#include<netdb.h>
+#include<string.h>
+#include<stdlib.h>
+#include<stdio.h>
+
+int main(){
+    char buff[80];
+    int sockfd; int n=0;
+    struct sockaddr_in servaddr;
+
+    sockfd=socket(AF_INET,SOCK_DGRAM,0);
+
+    bzero(&servaddr,sizeof(servaddr));
+    servaddr.sin_family=AF_INET;
+    servaddr.sin_addr.s_addr=inet_addr("127.0.0.1");
+    servaddr.sin_port=htons(43454);
+
+    printf("\nEnter string : ");
+    while((buff[n++]=getchar())!='\n');
+
+    sendto(sockfd,buff,sizeof(buff),0,(struct sockaddr *)&servaddr,sizeof(servaddr));
+    bzero(buff,sizeof(buff));
+    recvfrom(sockfd,buff,sizeof(buff),0,(struct sockaddr *)&servaddr,&sizeof(servaddr));
+    printf("From Server : %s\n",buff);
+
+    close(sockfd);
+}
+
+
+//Server Echo
+#include<stdio.h>
+#include<netinet/in.h>
+#include<sys/types.h>
+#include<sys/socket.h>
+#include<netdb.h>
+//UDP Echo Server
+#include<string.h>
+#include<stdlib.h>
+
+int main(){
+    int sockfd;
+    struct sockaddr_in servaddr,cli;
+    char buff[80];
+
+    sockfd=socket(AF_INET,SOCK_DGRAM,0);
+
+    bzero(&servaddr,sizeof(servaddr));
+    servaddr.sin_family=AF_INET;
+    servaddr.sin_addr.s_addr=htonl(INADDR_ANY);
+    servaddr.sin_port=htons(43454);
+
+    bind(sockfd,(struct sockaddr *)&servaddr,sizeof(servaddr));
+
+    while(1){
+        bzero(buff,80);
+        recvfrom(sockfd,buff,sizeof(buff),0,(struct sockaddr *)&cli,&sizeof(cli));
+        printf("\nUDP Echo Back: %s ",buff);	
+        sendto(sockfd,buff,strlen(buff),0,(struct sockaddr *)&cli,sizeof(cli));
+    }
+    close(sockfd);
+}
