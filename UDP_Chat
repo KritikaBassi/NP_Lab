@@ -1,0 +1,63 @@
+//UDP Client Chat
+#include <stdio.h> // perror, printf
+#include <stdlib.h> // exit, atoi
+#include <unistd.h> // write, read, close
+#include <arpa/inet.h> // sockaddr_in, AF_INET, SOCK_STREAM, INADDR_ANY, socket etc...
+#include <string.h> // strlen, memset
+
+const char message[] = "Hello sockets world\n";
+
+int main(int argc, char const *argv[]) {
+  int serverFd;
+  struct sockaddr_in server;
+  int len;
+  int port = 1244;
+  char *server_ip = "127.0.0.1";
+  char *buffer = "hello server\n";
+  serverFd = socket(AF_INET, SOCK_DGRAM, 0);
+  if (serverFd < 0) {
+    perror("Cannot create socket");
+    exit(1);
+  }
+  server.sin_family = AF_INET;
+  server.sin_addr.s_addr = inet_addr(server_ip);
+  server.sin_port = htons(port);
+  sendto(serverFd, buffer, 1024, 0, (struct sockaddr*)&server, sizeof(server));
+  printf("Data Send: %s", buffer);
+  close(serverFd);
+  return 0;
+}
+
+//UDP Server Chat
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+int main(int argc, char **argv){
+  int serverFd;
+  struct sockaddr_in server, client;
+  int len;
+  int port = 1244;
+  char buffer[1024];
+  serverFd = socket(AF_INET, SOCK_DGRAM, 0);
+  if (serverFd < 0) {
+    perror("Cannot create socket");
+    exit(1);
+  }
+  server.sin_family = AF_INET;
+  server.sin_addr.s_addr = INADDR_ANY;
+  server.sin_port = htons(port);
+  len = sizeof(server);
+  if (bind(serverFd, (struct sockaddr *)&server, len) < 0) {
+    perror("Cannot bind sokcet");
+    exit(2);
+  }
+  memset(buffer, 0, sizeof(buffer));
+  recvfrom(serverFd, buffer, 1024, 0, (struct sockaddr*)& client, &len);
+  printf("received %s from client\n", buffer);
+  return 0;
+}
