@@ -1,0 +1,101 @@
+//Reverse String Server
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#define PORT 8080
+#define BUFFER_SIZE 1024
+
+void reverse_string(char *str) {
+    int n = strlen(str);
+    for (int i = 0; i < n / 2; i++) {
+        char temp = str[i];
+        str[i] = str[n - i - 1];
+        str[n - i - 1] = temp;
+    }
+}
+
+int main() {
+    int server_fd, client_fd;
+    struct sockaddr_in address;
+    int addrlen = sizeof(address);
+    char buffer[BUFFER_SIZE] = {0};
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
+        perror("Socket failed");
+        exit(EXIT_FAILURE);
+    }
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = htons(PORT);
+    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
+        perror("Bind failed");
+        close(server_fd);
+        exit(EXIT_FAILURE);
+    }
+    if (listen(server_fd, 3) < 0) {
+        perror("Listen failed");
+        close(server_fd);
+        exit(EXIT_FAILURE);
+    }
+    printf("Server listening on port %d...\n", PORT);
+    if ((client_fd = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen)) < 0) {
+        perror("Accept failed");
+        close(server_fd);
+        exit(EXIT_FAILURE);
+    }
+    int read_size = read(client_fd, buffer, BUFFER_SIZE);
+    if (read_size > 0) {
+        printf("Received from client: %s\n", buffer);
+        reverse_string(buffer);
+        send(client_fd, buffer, strlen(buffer), 0);
+        printf("Reversed string sent to client: %s\n", buffer);
+    }
+    close(client_fd);
+    close(server_fd);
+    return 0;
+}
+
+//Reverse String Client
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#define PORT 8080
+#define BUFFER_SIZE 1024
+
+int main() {
+    int client_fd;
+    struct sockaddr_in server_address;
+    char buffer[BUFFER_SIZE] = {0};
+    char input_string[BUFFER_SIZE];
+    if ((client_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        perror("Socket creation failed");
+        exit(EXIT_FAILURE);
+    }
+    server_address.sin_family = AF_INET;
+    server_address.sin_port = htons(PORT);
+    if (inet_pton(AF_INET, "127.0.0.1", &server_address.sin_addr) <= 0) {
+        perror("Invalid address/Address not supported");
+        close(client_fd);
+        exit(EXIT_FAILURE);
+    }
+    if (connect(client_fd, (struct sockaddr *)&server_address, sizeof(server_address)) < 0) {
+        perror("Connection failed");
+        close(client_fd);
+        exit(EXIT_FAILURE);
+    }
+    printf("Enter a string: ");
+    fgets(input_string, BUFFER_SIZE, stdin);
+    input_string[strcspn(input_string, "\n")] = 0; // Remove newline character
+    send(client_fd, input_string, strlen(input_string), 0);
+    printf("Sent to server: %s\n", input_string);
+    int read_size = read(client_fd, buffer, BUFFER_SIZE);
+    if (read_size > 0) {
+        buffer[read_size] = '\0';
+        printf("Received from server: %s\n", buffer);
+    }
+    close(client_fd);
+    return 0;
+}
